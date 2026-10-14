@@ -53,7 +53,7 @@ export default function CancellationSurveyModal({ open, onClose, formattedExpiry
       }
     } catch (err: any) {
       console.error("Submission failed:", err);
-      setError(err.message || "An unexpected error occurred.");
+      setError("An error occurred");
     } finally {
       setIsSubmitting(false);
     }

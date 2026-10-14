@@ -54,7 +54,7 @@ async function startCheckout(priceId: string): Promise<void> {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? "Failed to start checkout");
+    throw new Error(err.error ?? "An error occurred");
   }
 
   const { url } = await res.json();
@@ -132,7 +132,8 @@ function PlanCard({
     }
 
     if (!plan.priceId || (plan.priceId.startsWith("price_") && plan.priceId.endsWith("_here"))) {
-      setError("Stripe Price ID is not configured in .env. Please update your environment variables with real Stripe Price IDs.");
+      console.error("[PricingPage] Stripe Price ID is not configured:", plan.id);
+      setError("An error occurred");
       return;
     }
 
@@ -140,7 +141,13 @@ function PlanCard({
       try {
         await startCheckout(plan.priceId);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        console.error("[PricingPage] Checkout error:", e);
+        const msg = e instanceof Error ? e.message : "";
+        if (msg && msg.includes("already have an active subscription")) {
+          setError(msg);
+        } else {
+          setError("An error occurred");
+        }
       }
     });
   }

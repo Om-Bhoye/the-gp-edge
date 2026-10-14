@@ -112,7 +112,7 @@ export async function submitCancellationFeedbackAction(reason: string, feedback?
     return { success: true };
   } catch (err: any) {
     console.error("❌ Cancellation Feedback DB Error:", err);
-    return { error: err.message || "Failed to submit feedback." };
+    return { error: "An error occurred" };
   }
 }
 
