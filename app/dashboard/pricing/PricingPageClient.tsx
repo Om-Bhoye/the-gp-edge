@@ -131,6 +131,16 @@ function PlanCard({
   function handleClick() {
     setError(null);
 
+    // Free plan handler: takes user to practice questions without Stripe checkout
+    if (plan.amountAUD === 0 || plan.id === "free_plan") {
+      if (!isUserAuthenticated || isSignedIn === false) {
+        window.location.href = `/sign-up?redirect_url=${encodeURIComponent("/exam-prep")}`;
+      } else {
+        window.location.href = "/exam-prep";
+      }
+      return;
+    }
+
     // If user is not logged in, redirect to login window
     if (!isUserAuthenticated || isSignedIn === false) {
       const returnUrl = typeof window !== "undefined" ? (window.location.pathname || "/pricing") : "/pricing";
@@ -222,13 +232,26 @@ function PlanCard({
             )}
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium mt-2">
-            {plan.billingType === "one-time" ? (
+            {plan.amountAUD === 0 ? (
+              <Zap className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
+            ) : plan.billingType === "one-time" ? (
               <CreditCard className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
             ) : (
               <Calendar className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
             )}
             <span>{plan.priceNote}</span>
           </div>
+
+          {plan.amountAUD === 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap mt-2.5">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
+                No payment details
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
+                No time limit
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Divider */}
@@ -278,6 +301,8 @@ function PlanCard({
           disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99]
           ${isThisSpecificPlan
             ? "bg-slate-100 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs font-semibold cursor-default"
+            : plan.amountAUD === 0
+            ? "bg-slate-100 dark:bg-slate-800/90 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-800 dark:text-slate-100 hover:text-teal-700 dark:hover:text-teal-300 border border-slate-300 dark:border-slate-700 hover:border-teal-400 dark:hover:border-teal-600 shadow-2xs"
             : "bg-teal-600 hover:bg-teal-500 text-white shadow-sm hover:shadow"
           }
         `}
@@ -538,98 +563,95 @@ export default function PricingPageClient({
         <section className="w-full mt-12 sm:mt-16 border-t border-slate-200/80 dark:border-slate-800/80 pt-12 sm:pt-16">
           <div className="mb-8 text-center sm:text-left max-w-3xl">
             <h2 className="text-2xl md:text-3xl font-bold font-serif text-slate-900 dark:text-slate-50 mb-2 leading-tight">
-              Built for GP Registrars: AKT &amp; KFP Exam Preparation
+              What&apos;s Included
             </h2>
-            <p className="text-slate-650 dark:text-slate-400 text-xs sm:text-sm font-sans leading-relaxed">
-              A question bank for the RACGP written exams, built and maintained specifically for Australian general practice.
+            <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-sans leading-relaxed">
+              Built for GP registrars preparing for the RACGP written exams, and maintained for Australian general practice.
             </p>
-            <div className="mt-3.5 inline-block px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-955/30 text-emerald-800 dark:text-emerald-300 text-xs font-semibold border border-emerald-100 dark:border-emerald-900/30">
-              Start with 30 free questions (23 AKT &amp; 7 KFP) — no payment details required.
-            </div>
           </div>
 
           {/* Grid Layout: 4 Compact Cards */}
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 max-w-7xl mx-auto">
-            {/* Card 1 */}
+            {/* Category 1: Questions and Explanations */}
             <div className="p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700/80 transition-all duration-200">
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-50 font-sans">
-                  High-Yield Question Bank &amp; Rigorous Explanations
+                  Questions and Explanations
                 </h3>
               </div>
               <ul className="space-y-2.5 text-xs text-slate-600 dark:text-slate-400 pl-4 list-disc leading-relaxed">
                 <li>
-                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">AKT Questions:</strong> Written in Single Best Answer format with 5–10 options, set in Australian general practice and pitched at exam-level difficulty.
+                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">AKT:</strong> single best answer with 5–10 options, set in Australian general practice, graded Easy, Medium and Hard.
                 </li>
                 <li>
-                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">KFP Questions:</strong> Built in the current select-X format with realistic option pools designed to test clinical discrimination.
+                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">KFP:</strong> select the number of answers given, from realistic option pools that test clinical decisions.
                 </li>
                 <li>
-                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Deep Explanations:</strong> Explains why correct answers are right, why wrong options fail, and references exact guidelines (document, edition, section, cut-offs, and last review date).
+                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Explanations:</strong> why the answer is right, why each other option is wrong, and the guideline it rests on edition and section.
                 </li>
               </ul>
             </div>
 
-            {/* Card 2 */}
+            {/* Category 2: Three ways to practise */}
             <div className="p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700/80 transition-all duration-200">
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-50 font-sans">
-                  Three Flexible Ways to Practise
+                  Three ways to practise
                 </h3>
               </div>
               <ul className="space-y-2.5 text-xs text-slate-600 dark:text-slate-400 pl-4 list-disc leading-relaxed">
                 <li>
-                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Build Your Own Quiz:</strong> Customise by curriculum units, topics, subtopics, length, difficulty, and timed/untimed modes.
+                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Build your own quiz:</strong> choose curriculum units, topics, length and difficulty. Timed or untimed.
                 </li>
                 <li>
-                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Sit a Mock Exam:</strong> Full-length, hand-assembled mocks with weighted topic coverage and scoring calibrated to the real RACGP exam.
+                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Mock exams:</strong> hand-assembled, with topic coverage weighted across the curriculum.
                 </li>
                 <li>
-                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Adaptive Practice (Let the Platform Pick):</strong> Quizzes dynamically generated from your performance, targeting weak spots and unattempted topics.
+                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Adaptive practice:</strong> quizzes chosen from your results, aimed at weak and unattempted topics.
                 </li>
               </ul>
             </div>
 
-            {/* Card 3 */}
+            {/* Category 3: Progress tracking */}
             <div className="p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700/80 transition-all duration-200">
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-50 font-sans">
-                  Smart Readiness &amp; Study Tracking
+                  Progress tracking
                 </h3>
               </div>
               <ul className="space-y-2.5 text-xs text-slate-600 dark:text-slate-400 pl-4 list-disc leading-relaxed">
                 <li>
-                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Finds Where You&apos;re Thin:</strong> Flags both poorly answered topics and topics you haven&apos;t attempted yet to prevent hidden preparation blind spots.
+                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Gaps:</strong> shows topics you answer poorly and topics you haven&apos;t attempted yet.
                 </li>
                 <li>
-                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Prevents Over-Studying:</strong> Identifies mastered topics so you stop repeating what you already know.
+                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Strengths:</strong> shows topics you answer well consistently, so your time goes where it&apos;s needed.
                 </li>
                 <li>
-                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Real-Time Readiness Score:</strong> Track preparation by unit and benchmark your readiness against peers.
+                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">By unit:</strong> track your progress across each curriculum unit.
                 </li>
               </ul>
             </div>
 
-            {/* Card 4 */}
+            {/* Category 4: Mapped to the RACGP curriculum */}
             <div className="p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700/80 transition-all duration-200">
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-50 font-sans">
-                  Complete RACGP Curriculum Coverage
+                  Mapped to the RACGP curriculum
                 </h3>
               </div>
               <ul className="space-y-2.5 text-xs text-slate-600 dark:text-slate-400 pl-4 list-disc leading-relaxed">
                 <li>
-                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Proportional Weighting:</strong> Study time matches mark distribution—high-frequency GP conditions receive deeper question coverage.
+                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Organised by unit and topic:</strong> every question is tagged, so you can study one area or all of them.
                 </li>
                 <li>
-                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Exam-Calibrated:</strong> Rebalanced continuously using published College exam performance reports.
+                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Weighted to general practice:</strong> common presentations get more questions than rare ones.
                 </li>
                 <li>
-                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Continuous Updates:</strong> Questions updated weekly and refreshed whenever clinical guidelines change.
+                  <strong className="text-slate-800 dark:text-slate-300 font-semibold">Kept current:</strong> content is maintained against current Australian guidelines.
                 </li>
               </ul>
             </div>

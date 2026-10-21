@@ -20,7 +20,25 @@ export const metadata = {
     "Invest in your RACGP & ACRRM fellowship exam success. Comprehensive exam prep question banks and clinical tools for GP Registrars across Australia.",
 };
 
-export const ALL_PLANS: Record<PlanId, PricingPlan> = {
+const ALL_PLANS: Record<PlanId, PricingPlan> = {
+  free_plan: {
+    id: "free_plan",
+    name: "Free",
+    tagline: "Try the platform before you commit",
+    badge: null,
+    priceDisplay: "0",
+    priceNote: "No payment details · No time limit",
+    billingType: "one-time",
+    amountAUD: 0,
+    highlight: false,
+    features: [
+      "A sample of AKT and KFP questions",
+      "Full explanations on every sample question",
+      "The same formats as the full bank",
+    ],
+    cta: "Start free",
+    priceId: "",
+  },
   registrar_6mo: {
     id: "registrar_6mo",
     name: "6-Month Exam Prep Plan",
@@ -139,8 +157,8 @@ export default async function PricingPage() {
 
   const trainingStage = isFellow ? "FELLOW" : "REGISTRAR";
 
-  // Build ordered plan list (showing the 6-month and 12-month Exam Prep plans)
-  const visiblePlanIds: PlanId[] = ["registrar_6mo", "registrar_12mo"];
+  // Build ordered plan list (showing the Free, 6-month, and 12-month Exam Prep plans)
+  const visiblePlanIds: PlanId[] = ["free_plan", "registrar_6mo", "registrar_12mo"];
   const plans = visiblePlanIds.map((id) => ({ ...ALL_PLANS[id] }));
 
   const currentAccessLevel =

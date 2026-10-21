@@ -429,6 +429,7 @@ export async function canAccessMockTestItem(userId: string, isFree: boolean): Pr
 // ─── Pricing visibility rules ─────────────────────────────────────────────────
 
 export type PlanId =
+  | "free_plan"
   | "registrar_6mo"
   | "registrar_12mo"
   | "fellowship_monthly"
