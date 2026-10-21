@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 /**
  * Protected routes — any path matching these patterns requires an active
@@ -15,6 +16,15 @@ export default clerkMiddleware(async (auth, req) => {
   const hasClerkKeys = Boolean(
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY
   );
+
+  // If an unauthenticated user visits /dashboard/pricing, seamlessly redirect them
+  // to the public /pricing page so they can view plans without logging in.
+  if (req.nextUrl.pathname.startsWith("/dashboard/pricing")) {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.redirect(new URL("/pricing", req.url));
+    }
+  }
 
   // Server Actions send a POST request containing the `Next-Action` header.
   // We bypass auth.protect() redirects for Server Action POST calls so browser fetch()

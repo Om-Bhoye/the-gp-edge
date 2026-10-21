@@ -16,7 +16,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 const MENU_LINKS: { href: string; label: string }[] = [
   { href: "/", label: "Home" },
   { href: "/exam-prep", label: "Exam Prep" },
-  { href: "/dashboard/pricing", label: "Pricing" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/#about", label: "About Us" },
 ];
 
@@ -132,9 +132,9 @@ const Header = memo(function Header({ variant = "fixed" }: HeaderProps) {
           </Link>
 
           <Link
-            href="/dashboard/pricing"
+            href="/pricing"
             className={`text-[13px] xl:text-[14px] whitespace-nowrap font-medium transition-colors duration-200 ${
-              pathname === "/dashboard/pricing"
+              pathname === "/pricing" || pathname === "/dashboard/pricing"
                 ? "text-teal-600 dark:text-teal-400 font-semibold"
                 : "text-slate-500 dark:text-[#A8B1BD] hover:text-slate-900 dark:hover:text-[#F5F7FA]"
             }`}

@@ -9,6 +9,7 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
+import { useAuth } from "@clerk/nextjs";
 import { CheckCircle2, Clock, Zap, Star, Repeat, AlertCircle, Calendar, Award, CreditCard, FileText, Loader2, X } from "lucide-react";
 import DuplicatePurchaseModal from "@/components/dashboard/DuplicatePurchaseModal";
 import CancellationSurveyModal from "@/components/dashboard/CancellationSurveyModal";
@@ -30,17 +31,18 @@ export interface PricingPlan {
   priceId: string;
 }
 
-interface Props {
+export interface Props {
   plans: PricingPlan[];
-  userRole: string;
+  userRole?: string;
   trainingStage?: "REGISTRAR" | "FELLOW" | "OTHER";
-  currentAccessLevel: string;
-  accessExpiresAt: string | null;
+  currentAccessLevel?: string;
+  accessExpiresAt?: string | null;
   cancelAtPeriodEnd?: boolean;
   activePriceId?: string | null;
   hasPaidAccess?: boolean;
   hasPurchasedRegistrar?: boolean;
   activePlanName?: string | null;
+  isLoggedIn?: boolean;
 }
 
 // ─── Checkout handler ─────────────────────────────────────────────────────────
@@ -72,6 +74,7 @@ function PlanCard({
   cancelAtPeriodEnd,
   onAttemptActivePurchase,
   activePlanName,
+  isLoggedIn = true,
 }: {
   plan: PricingPlan;
   currentAccessLevel: string;
@@ -81,9 +84,12 @@ function PlanCard({
   cancelAtPeriodEnd?: boolean;
   onAttemptActivePurchase: () => void;
   activePlanName?: string | null;
+  isLoggedIn?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { isSignedIn } = useAuth();
+  const isUserAuthenticated = isLoggedIn && (isSignedIn ?? true);
 
   // 1. Identify the EXACT plan card using the original Price ID or fallback Package Key or granular activePlanName
   const isThisSpecificPlan = Boolean(
@@ -124,6 +130,13 @@ function PlanCard({
 
   function handleClick() {
     setError(null);
+
+    // If user is not logged in, redirect to login window
+    if (!isUserAuthenticated || isSignedIn === false) {
+      const returnUrl = typeof window !== "undefined" ? (window.location.pathname || "/pricing") : "/pricing";
+      window.location.href = `/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`;
+      return;
+    }
 
     // Active Subscription Guard: Block duplicate checkout if user already has an active paid plan
     if (hasPaidAccess) {
@@ -295,12 +308,14 @@ function AccessBanner({
   cancelAtPeriodEnd,
   isRecurring,
   activePlanName = null,
+  isLoggedIn = true,
 }: {
   currentAccessLevel: string;
   accessExpiresAt: string | null;
   cancelAtPeriodEnd?: boolean;
   isRecurring?: boolean;
   activePlanName?: string | null;
+  isLoggedIn?: boolean;
 }) {
   const [pendingAction, setPendingAction] = useState<"invoice" | "cancel" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -332,7 +347,7 @@ function AccessBanner({
     });
   }
 
-  if (currentAccessLevel === "FREE") return null;
+  if (!isLoggedIn || currentAccessLevel === "FREE") return null;
 
   const levelLabel: Record<string, string> = {
     REGISTRAR: "Registrar",
@@ -426,15 +441,16 @@ const MODULE_ACCESS: Record<
 
 export default function PricingPageClient({
   plans,
-  userRole,
+  userRole = "REGISTRAR",
   trainingStage = "REGISTRAR",
-  currentAccessLevel,
-  accessExpiresAt,
-  cancelAtPeriodEnd,
-  activePriceId,
-  hasPaidAccess,
-  hasPurchasedRegistrar,
+  currentAccessLevel = "FREE",
+  accessExpiresAt = null,
+  cancelAtPeriodEnd = false,
+  activePriceId = null,
+  hasPaidAccess = false,
+  hasPurchasedRegistrar = false,
   activePlanName = null,
+  isLoggedIn = true,
 }: Props) {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
@@ -487,6 +503,7 @@ export default function PricingPageClient({
           cancelAtPeriodEnd={cancelAtPeriodEnd}
           isRecurring={isRecurring}
           activePlanName={activePlanName}
+          isLoggedIn={isLoggedIn}
         />
 
         {/* ── Section 2: Pricing Cards ──────────────────────────────────────── */}
@@ -511,6 +528,7 @@ export default function PricingPageClient({
                 cancelAtPeriodEnd={cancelAtPeriodEnd}
                 onAttemptActivePurchase={() => setShowDuplicateModal(true)}
                 activePlanName={activePlanName}
+                isLoggedIn={isLoggedIn}
               />
             ))}
           </div>

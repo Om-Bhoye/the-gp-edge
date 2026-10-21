@@ -126,7 +126,7 @@ const ALL_PLANS: Record<PlanId, PricingPlan> = {
 
 export default async function PricingPage() {
   const dbUser = await ensureDbUser();
-  if (!dbUser) redirect("/sign-in");
+  if (!dbUser) redirect("/pricing");
 
   const accessInfo = await getUserAccess(dbUser);
 
@@ -160,6 +160,7 @@ export default async function PricingPage() {
       hasPaidAccess={accessInfo?.hasPaidAccess ?? (currentAccessLevel !== "FREE" || Boolean(dbUser.has_purchased_registrar))}
       hasPurchasedRegistrar={Boolean(dbUser.has_purchased_registrar)}
       activePlanName={accessInfo?.planName ?? null}
+      isLoggedIn={true}
     />
   );
 }
