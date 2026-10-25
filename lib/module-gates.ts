@@ -55,9 +55,9 @@ export async function checkMBSAccess(userId: string): Promise<{
 
 // ─── Quota forfeiture compatibility helper ──────────────────────────────────
 
-export async function forfeitFreeQuota(userId: string): Promise<void> {
+export async function forfeitFreeQuota(userId: string, tx: any = prisma): Promise<void> {
   // Free quota counters are deprecated in favor of dynamic is_free flags.
-  await prisma.users.update({
+  await tx.users.update({
     where: { id: userId },
     data: {
       free_questions_left: 0,

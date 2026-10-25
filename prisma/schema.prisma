@@ -1329,3 +1329,12 @@ model taxonomy_topics {
   @@index([status], map: "idx_taxonomy_topics_status")
 }
 
+model stripe_webhook_events {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_id     String   @unique
+  event_type   String
+  processed_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([event_id], map: "idx_stripe_webhook_events_event_id")
+}
+

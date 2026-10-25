@@ -14,7 +14,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
-import { stripe, REGISTRAR_PRICE_IDS } from "@/lib/stripe";
+import { stripe, getPlanConfigByPriceId } from "@/lib/stripe";
+import { getUserAccess } from "@/lib/access";
 
 function getBaseUrl(req: Request): string {
   // 1. Check origin header from browser request
@@ -74,7 +75,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // ── Validate Plan and Price ID against trusted server config ──────────────
+    const planConfig = getPlanConfigByPriceId(priceId);
+    if (!planConfig) {
+      return NextResponse.json({ error: "Invalid or unsupported plan" }, { status: 400 });
+    }
+
     // ── Active Subscription Backend Guard ──────────────────────────────────────
+    // Check both getUserAccess and active subscriptions table
+    const userAccess = await getUserAccess(dbUser.id);
+    if (userAccess?.hasPaidAccess) {
+      return NextResponse.json(
+        { error: "You already have an active subscription. Please manage your subscription from your Profile page." },
+        { status: 400 }
+      );
+    }
+
     const activeSub = await prisma.subscriptions.findFirst({
       where: {
         user_id: dbUser.id,
@@ -89,43 +105,70 @@ export async function POST(req: Request) {
       );
     }
 
-    // ── Determine checkout mode ────────────────────────────────────────────────
-    const isOneTimePayment = REGISTRAR_PRICE_IDS.has(priceId);
-    const mode = isOneTimePayment ? "payment" : "subscription";
+    // ── Ensure Stripe Customer Exists ──────────────────────────────────────────
+    let stripeCustomerId = dbUser.stripe_customer_id;
+    if (!stripeCustomerId) {
+      try {
+        const existingCustomers = await stripe.customers.list({
+          email: dbUser.email,
+          limit: 1,
+        });
+        if (existingCustomers.data.length > 0) {
+          stripeCustomerId = existingCustomers.data[0].id;
+        } else {
+          const newCust = await stripe.customers.create({
+            email: dbUser.email,
+            metadata: { userId: dbUser.id },
+          });
+          stripeCustomerId = newCust.id;
+        }
+        await prisma.users.update({
+          where: { id: dbUser.id },
+          data: { stripe_customer_id: stripeCustomerId },
+        });
+      } catch (custErr) {
+        console.warn("[create-checkout-session] Customer resolution error:", custErr);
+      }
+    }
 
-    // ── Build success / cancel URLs ───────────────────────────────────────────
+    // ── Session Deduplication / Concurrency Guard ──────────────────────────────
+    // If the customer already has an open checkout session for this priceId created within the last 30 minutes, reuse it
+    if (stripeCustomerId) {
+      try {
+        const openSessions = await stripe.checkout.sessions.list({
+          customer: stripeCustomerId,
+          status: "open",
+          limit: 5,
+        });
+
+        const nowSeconds = Math.floor(Date.now() / 1000);
+        const reusableSession = openSessions.data.find((s) => {
+          const matchesPrice = s.metadata?.priceId === priceId;
+          const isRecent = s.created && (nowSeconds - s.created < 1800); // 30 minutes
+          const notExpired = !s.expires_at || s.expires_at > nowSeconds;
+          return matchesPrice && isRecent && notExpired && Boolean(s.url);
+        });
+
+        if (reusableSession?.url) {
+          console.log(`[create-checkout-session] Reusing existing open session ${reusableSession.id} for price ${priceId}`);
+          return NextResponse.json({ url: reusableSession.url });
+        }
+      } catch (listErr) {
+        console.warn("[create-checkout-session] Error listing open sessions:", listErr);
+      }
+    }
+
+    // ── Determine checkout mode & URLs ─────────────────────────────────────────
+    const mode = planConfig.mode;
     const baseUrl = getBaseUrl(req);
     const successUrl = `${baseUrl}/dashboard/pricing?success=true&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/dashboard/pricing?canceled=true`;
 
-    // ── Map Price IDs to granular names/durations ──────────────────────────────
-    let packageName = "Unknown Plan";
-    let planTitle = "Unknown Plan";
-    let packageDurationMonths = "1";
+    const packageName = planConfig.packageName;
+    const planTitle = planConfig.planTitle;
+    const packageDurationMonths = String(planConfig.durationMonths);
 
-    if (priceId === process.env.STRIPE_PRICE_REGISTRAR_6MONTH) {
-      packageName = "Registrar 6-Month Package";
-      planTitle = "Registrar 6-Month Package";
-      packageDurationMonths = "6";
-    } else if (priceId === process.env.STRIPE_PRICE_REGISTRAR_12MONTH) {
-      packageName = "Registrar 12-Month Package";
-      planTitle = "Registrar 12-Month Package";
-      packageDurationMonths = "12";
-    } else if (priceId === process.env.STRIPE_PRICE_POST_REGISTRAR_MONTHLY) {
-      packageName = "Post-Registrar Upgrade";
-      planTitle = "Loyalty Monthly Plan";
-      packageDurationMonths = "1";
-    } else if (priceId === process.env.STRIPE_PRICE_FELLOWSHIP_MONTHLY) {
-      packageName = "Fellowship Monthly";
-      planTitle = "Fellowship Monthly Plan";
-      packageDurationMonths = "1";
-    } else if (priceId === process.env.STRIPE_PRICE_FELLOWSHIP_YEARLY) {
-      packageName = "Fellowship Annual";
-      planTitle = "Fellowship Annual Plan";
-      packageDurationMonths = "12";
-    }
-
-    // ── Create Checkout Session ────────────────────────────────────────────────
+    // ── Create Checkout Session with Stripe Idempotency Key ────────────────────
     const sessionConfig: any = {
       mode,
       line_items: [{ price: priceId, quantity: 1 }],
@@ -142,8 +185,8 @@ export async function POST(req: Request) {
       allow_promotion_codes: true,
     };
 
-    if (dbUser.stripe_customer_id) {
-      sessionConfig.customer = dbUser.stripe_customer_id;
+    if (stripeCustomerId) {
+      sessionConfig.customer = stripeCustomerId;
     } else {
       sessionConfig.customer_email = dbUser.email;
     }
@@ -173,7 +216,13 @@ export async function POST(req: Request) {
       sessionConfig.billing_address_collection = "auto";
     }
 
-    const session = await stripe.checkout.sessions.create(sessionConfig);
+    // Atomicity key: 10-minute window bucket prevents concurrent duplicate session creation in Stripe
+    const timeBucket = Math.floor(Date.now() / (10 * 60 * 1000));
+    const idempotencyKey = `cs_${dbUser.id}_${priceId}_${timeBucket}`;
+
+    const session = await stripe.checkout.sessions.create(sessionConfig, {
+      idempotencyKey,
+    });
 
     return NextResponse.json({ url: session.url });
   } catch (err) {

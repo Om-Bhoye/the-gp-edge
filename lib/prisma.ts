@@ -4,18 +4,21 @@
 // has generated the client into lib/generated/prisma.
 import { PrismaClient } from "./generated/prisma";
 import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
 function createPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL?.replace(
+  const rawUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
+  const connectionString = rawUrl?.replace(
     /([?&])sslmode=(?:require|prefer|verify-ca)\b/i,
     "$1sslmode=verify-full",
   );
 
-  const adapter = new PrismaPg({ connectionString });
+  const pool = new pg.Pool({ connectionString, max: 10 });
+  const adapter = new PrismaPg(pool);
 
   return new PrismaClient({
     adapter,

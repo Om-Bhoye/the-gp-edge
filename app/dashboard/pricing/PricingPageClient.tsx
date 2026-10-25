@@ -7,7 +7,7 @@
  * UI/UX redesign with 0 changes to backend, Stripe API integration, or role-awareness logic.
  */
 
-import { useState, useTransition } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import { useAuth } from "@clerk/nextjs";
 import { CheckCircle2, Clock, Zap, Star, Repeat, AlertCircle, Calendar, Award, CreditCard, FileText, Loader2, X } from "lucide-react";
@@ -75,6 +75,9 @@ function PlanCard({
   onAttemptActivePurchase,
   activePlanName,
   isLoggedIn = true,
+  isProcessing = false,
+  isAnyProcessing = false,
+  onStartCheckout,
 }: {
   plan: PricingPlan;
   currentAccessLevel: string;
@@ -85,8 +88,10 @@ function PlanCard({
   onAttemptActivePurchase: () => void;
   activePlanName?: string | null;
   isLoggedIn?: boolean;
+  isProcessing?: boolean;
+  isAnyProcessing?: boolean;
+  onStartCheckout?: (priceId: string) => Promise<void>;
 }) {
-  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const { isSignedIn } = useAuth();
   const isUserAuthenticated = isLoggedIn && (isSignedIn ?? true);
@@ -128,7 +133,10 @@ function PlanCard({
     }
   }
 
-  function handleClick() {
+  async function handleClick() {
+    // Immediate concurrency guard: prevent duplicate execution
+    if (isAnyProcessing || isProcessing) return;
+
     setError(null);
 
     // Free plan handler: takes user to practice questions without Stripe checkout
@@ -160,9 +168,9 @@ function PlanCard({
       return;
     }
 
-    startTransition(async () => {
+    if (onStartCheckout) {
       try {
-        await startCheckout(plan.priceId);
+        await onStartCheckout(plan.priceId);
       } catch (e) {
         console.error("[PricingPage] Checkout error:", e);
         const msg = e instanceof Error ? e.message : "";
@@ -172,7 +180,7 @@ function PlanCard({
           setError("An error occurred");
         }
       }
-    });
+    }
   }
 
   return (
@@ -295,7 +303,7 @@ function PlanCard({
       {/* CTA Button */}
       <button
         onClick={handleClick}
-        disabled={isPending || isThisSpecificPlan}
+        disabled={isAnyProcessing || isThisSpecificPlan}
         className={`
           w-full py-3.5 px-5 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer
           disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99]
@@ -307,7 +315,7 @@ function PlanCard({
           }
         `}
       >
-        {isPending ? (
+        {isProcessing ? (
           <span className="flex items-center justify-center gap-2">
             <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
@@ -478,6 +486,21 @@ export default function PricingPageClient({
   isLoggedIn = true,
 }: Props) {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [processingPriceId, setProcessingPriceId] = useState<string | null>(null);
+  const isSubmittingRef = useRef(false);
+
+  async function handleCheckout(priceId: string) {
+    if (isSubmittingRef.current || processingPriceId) return;
+    isSubmittingRef.current = true;
+    setProcessingPriceId(priceId);
+    try {
+      await startCheckout(priceId);
+    } catch (err) {
+      isSubmittingRef.current = false;
+      setProcessingPriceId(null);
+      throw err;
+    }
+  }
 
   const isFellow =
     String(trainingStage ?? "").toUpperCase() === "FELLOW" ||
@@ -554,6 +577,9 @@ export default function PricingPageClient({
                 onAttemptActivePurchase={() => setShowDuplicateModal(true)}
                 activePlanName={activePlanName}
                 isLoggedIn={isLoggedIn}
+                isProcessing={processingPriceId === plan.priceId}
+                isAnyProcessing={Boolean(processingPriceId)}
+                onStartCheckout={handleCheckout}
               />
             ))}
           </div>

@@ -6,18 +6,19 @@ import { Pool } from "pg";
 
 const globalForPool = globalThis as unknown as { pgPool: Pool | undefined };
 
+const rawDbUrl = process.env.DATABASE_URL;
+const connectionString = rawDbUrl?.replace(
+  /([?&])sslmode=(?:require|prefer|verify-ca)\b/i,
+  "$1sslmode=verify-full"
+);
+
 export const pool =
   globalForPool.pgPool ??
   new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString,
     ssl: { rejectUnauthorized: false },
-    // DATABASE_URL points at Neon's pgbouncer pooler (the "-pooler" host), which is built to
-    // hand out many more backend connections than a direct connection would tolerate — 5 was
-    // needlessly conservative and throttled question-import concurrency (importQuestionsAction
-    // now processes a chunk's questions in parallel via Promise.all) down to 5-at-a-time
-    // regardless of chunk size.
     max: 20,
-    idleTimeoutMillis: 300000, // 5 minutes: keep socket warm across page navigations & form fills
+    idleTimeoutMillis: 300000,
     connectionTimeoutMillis: 15000,
     keepAlive: true,
     keepAliveInitialDelayMillis: 10000,
