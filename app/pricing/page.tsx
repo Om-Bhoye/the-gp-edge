@@ -8,8 +8,9 @@
  * - If an unauthenticated user clicks any purchase button, they are redirected to /sign-in.
  */
 
+import { redirect } from "next/navigation";
 import { ensureDbUser } from "@/lib/user";
-import { getUserAccess, type PlanId } from "@/lib/access";
+import { type PlanId } from "@/lib/access";
 import PricingPageClient, { type PricingPlan } from "@/app/dashboard/pricing/PricingPageClient";
 
 export const dynamic = "force-dynamic";
@@ -146,37 +147,31 @@ export default async function PricingPage() {
     dbUser = null;
   }
 
-  const accessInfo = dbUser ? await getUserAccess(dbUser) : null;
-
-  const isFellow = dbUser
-    ? String(dbUser.training_stage ?? "").toUpperCase() === "FELLOW" ||
-      String(dbUser.user_role ?? "").toUpperCase() === "FELLOW" ||
-      String(dbUser.role_title ?? "").toLowerCase().includes("fellow") ||
-      String(dbUser.role_title ?? "").toLowerCase().includes("post-reg")
-    : false;
-
-  const trainingStage = isFellow ? "FELLOW" : "REGISTRAR";
+  // If the user is logged in, redirect them to the full dashboard pricing page
+  // where their sidebar, profile, and complete dashboard shell are active.
+  if (dbUser) {
+    redirect("/dashboard/pricing");
+  }
 
   // Build ordered plan list (showing the Free, 6-month, and 12-month Exam Prep plans)
   const visiblePlanIds: PlanId[] = ["free_plan", "registrar_6mo", "registrar_12mo"];
   const plans = visiblePlanIds.map((id) => ({ ...ALL_PLANS[id] }));
 
-  const currentAccessLevel =
-    accessInfo?.accessLevel ?? (dbUser?.has_purchased_registrar ? "REGISTRAR" : "FREE");
-
   return (
-    <PricingPageClient
-      plans={plans}
-      userRole={dbUser?.user_role ?? "REGISTRAR"}
-      trainingStage={trainingStage}
-      currentAccessLevel={currentAccessLevel}
-      accessExpiresAt={accessInfo?.currentPeriodEnd ? new Date(accessInfo.currentPeriodEnd).toISOString() : null}
-      cancelAtPeriodEnd={accessInfo?.cancelAtPeriodEnd ?? false}
-      activePriceId={accessInfo?.activePriceId ?? null}
-      hasPaidAccess={accessInfo?.hasPaidAccess ?? (currentAccessLevel !== "FREE" || Boolean(dbUser?.has_purchased_registrar))}
-      hasPurchasedRegistrar={Boolean(dbUser?.has_purchased_registrar)}
-      activePlanName={accessInfo?.planName ?? null}
-      isLoggedIn={Boolean(dbUser)}
-    />
+    <div className="pt-24 sm:pt-28 md:pt-32 pb-12 w-full min-h-screen">
+      <PricingPageClient
+        plans={plans}
+        userRole="REGISTRAR"
+        trainingStage="REGISTRAR"
+        currentAccessLevel="FREE"
+        accessExpiresAt={null}
+        cancelAtPeriodEnd={false}
+        activePriceId={null}
+        hasPaidAccess={false}
+        hasPurchasedRegistrar={false}
+        activePlanName={null}
+        isLoggedIn={false}
+      />
+    </div>
   );
 }

@@ -78,9 +78,17 @@ const Header = memo(function Header({ variant = "fixed" }: HeaderProps) {
     return null;
   }
 
-  // Hide the global fixed header if the user is signed in (as signed-in pages render the static header inside DashboardShell)
-  // or on pages that explicitly use DashboardShell (e.g. /dashboard, /exam-prep).
-  if (variant === "fixed" && (isSignedIn || pathname?.startsWith("/dashboard") || pathname?.startsWith("/exam-prep"))) {
+  // Hide the global fixed header ONLY on pages that render inside DashboardShell:
+  // (DashboardShell renders its own static Header variant="static")
+  // - All /dashboard pages
+  // - All /exam-prep pages
+  // - The home page "/" when the user is signed in (app/page.tsx renders DashboardShell for signed-in users)
+  const isRenderedInsideDashboardShell =
+    pathname?.startsWith("/dashboard") ||
+    pathname?.startsWith("/exam-prep") ||
+    (pathname === "/" && isSignedIn);
+
+  if (variant === "fixed" && isRenderedInsideDashboardShell) {
     return null;
   }
 
@@ -132,7 +140,7 @@ const Header = memo(function Header({ variant = "fixed" }: HeaderProps) {
           </Link>
 
           <Link
-            href="/pricing"
+            href={isSignedIn ? "/dashboard/pricing" : "/pricing"}
             className={`text-[13px] xl:text-[14px] whitespace-nowrap font-medium transition-colors duration-200 ${
               pathname === "/pricing" || pathname === "/dashboard/pricing"
                 ? "text-teal-600 dark:text-teal-400 font-semibold"
@@ -273,11 +281,12 @@ const Header = memo(function Header({ variant = "fixed" }: HeaderProps) {
           <div className="overflow-hidden">
             <div className="bg-white/95 dark:bg-[rgba(21,25,34,0.96)] backdrop-blur-[20px] border border-white/50 dark:border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.12)] rounded-2xl p-2 flex flex-col gap-0.5">
               {MENU_LINKS.map((l) => {
+                const targetHref = l.href === "/pricing" ? (isSignedIn ? "/dashboard/pricing" : "/pricing") : l.href;
                 const active = l.href === "/" ? pathname === "/" : pathname?.startsWith(l.href);
                 return (
                   <Link
                     key={l.href}
-                    href={l.href}
+                    href={targetHref}
                     onClick={() => setMenuOpen(false)}
                     className={`px-3 py-2.5 rounded-xl text-[14px] font-medium transition-colors ${
                       active

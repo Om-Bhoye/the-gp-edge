@@ -26,6 +26,15 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
+  // If an authenticated user visits /pricing, seamlessly redirect them
+  // to /dashboard/pricing so their sidebar and complete dashboard shell remain active.
+  if (req.nextUrl.pathname === "/pricing") {
+    const { userId } = await auth();
+    if (userId) {
+      return NextResponse.redirect(new URL("/dashboard/pricing", req.url));
+    }
+  }
+
   // Server Actions send a POST request containing the `Next-Action` header.
   // We bypass auth.protect() redirects for Server Action POST calls so browser fetch()
   // does not encounter a 307 redirect CORS failure ("TypeError: Failed to fetch at fetchServerAction").

@@ -5,6 +5,6 @@ import { redirect } from "next/navigation";
  * This redirect ensures any existing links continue to work without 404.
  */
 export default function BillingRedirect() {
-  redirect("/pricing");
+  redirect("/dashboard/pricing");
 }
 
