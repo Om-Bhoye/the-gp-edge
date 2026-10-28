@@ -130,7 +130,7 @@ export default function Footer() {
             <Link href="/contact" className="footer-animated-link">
               Contact Us
             </Link>
-            <Link href="/support" className="footer-animated-link">
+            <Link href="/contact" className="footer-animated-link">
               Support
             </Link>
           </div>

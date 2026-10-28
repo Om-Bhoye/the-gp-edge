@@ -69,16 +69,16 @@ export default function ContactClient() {
   return (
     <div className="w-full min-h-screen bg-transparent select-text pb-16">
       {/* Header Spacer / Top Anchor */}
-      <div className="pt-14 md:pt-16 pb-6 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+      <div className="pt-28 sm:pt-32 pb-6 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
 
         {/* Top Back Link */}
-        <div className="max-w-4xl mx-auto mb-4 sm:mb-6">
+        <div className="max-w-4xl mx-auto mb-6 sm:mb-8 flex items-center">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-300 transition-colors group"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-full border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-200 hover:-translate-x-0.5"
           >
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            Back to Home
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Home</span>
           </Link>
         </div>
 
@@ -165,10 +165,10 @@ export default function ContactClient() {
                   </a>.
                 </p>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  See our{" "}
-                  <Link href="/privacy-policy" className="text-teal-600 dark:text-teal-400 font-semibold underline underline-offset-2 hover:text-teal-700">
-                    Privacy Policy
-                  </Link>.
+                  To request a copy of our formal Privacy Policy, email{" "}
+                  <a href="mailto:admin@thegpedge.com.au?subject=Privacy%20Policy%20Request" className="text-teal-600 dark:text-teal-400 font-semibold underline underline-offset-2 hover:text-teal-700">
+                    admin@thegpedge.com.au
+                  </a>.
                 </p>
               </div>
             </div>
@@ -187,18 +187,31 @@ export default function ContactClient() {
                   Message Received
                 </div>
                 <p className="text-sm sm:text-base leading-relaxed">
-                  Thanks - your message has been received. We will reply to the email address you provided within 5 business days.
+                  Thanks — your message has been received. We will reply to the email address you provided within 5 business days.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStatus("idle");
-                    setMessage("");
-                  }}
-                  className="mt-2 text-xs font-semibold px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
-                >
-                  Send another message
-                </button>
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatus("idle");
+                      setMessage("");
+                    }}
+                    className="text-xs font-semibold px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors cursor-pointer"
+                  >
+                    Send another message
+                  </button>
+                  <a
+                    href={`mailto:admin@thegpedge.com.au?subject=${encodeURIComponent(
+                      `[The GP Edge] ${enquiryType} - ${fullName}`
+                    )}&body=${encodeURIComponent(
+                      `Name: ${fullName}\nEmail: ${email}\nRole: ${role}\nEnquiry Type: ${enquiryType}\n\nMessage:\n${message}`
+                    )}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    Open in email client
+                  </a>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
@@ -306,10 +319,10 @@ export default function ContactClient() {
                     Please do not include patient information or any identifiable clinical details in your message.
                   </p>
                   <p>
-                    By submitting this form you agree to us using your details to respond to your enquiry, as described in our{" "}
-                    <Link href="/privacy-policy" className="text-teal-600 dark:text-teal-400 font-semibold underline underline-offset-2 hover:text-teal-700">
-                      Privacy Policy
-                    </Link>.
+                    By submitting this form you agree to us using your details to respond to your enquiry. For privacy enquiries or documentation requests, email{" "}
+                    <a href="mailto:admin@thegpedge.com.au?subject=Privacy%20Inquiry" className="text-teal-600 dark:text-teal-400 font-semibold underline underline-offset-2 hover:text-teal-700">
+                      admin@thegpedge.com.au
+                    </a>.
                   </p>
                 </div>
 
@@ -347,30 +360,24 @@ export default function ContactClient() {
             </div>
           </section>
 
-          {/* Section 4 — Quick links */}
-          <section id="quick-links" className="scroll-mt-28 space-y-4">
+          {/* Section 4 — Policy Documentation Requests */}
+          <section id="policy-requests" className="scroll-mt-28 space-y-4">
             <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 pb-2 border-b border-slate-100 dark:border-slate-800/80">
-              Quick links
+              Policy documentation
             </h2>
-            <div className="flex flex-wrap gap-4 text-sm font-semibold">
-              <Link
-                href="/privacy-policy"
-                className="inline-flex items-center px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-teal-600 dark:text-teal-400 hover:border-teal-300 dark:hover:border-teal-700 transition-all"
-              >
-                Privacy Policy
-              </Link>
-              <Link
-                href="/terms"
-                className="inline-flex items-center px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-teal-600 dark:text-teal-400 hover:border-teal-300 dark:hover:border-teal-700 transition-all"
-              >
-                Terms of Use
-              </Link>
-              <Link
-                href="/refund-policy"
-                className="inline-flex items-center px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-teal-600 dark:text-teal-400 hover:border-teal-300 dark:hover:border-teal-700 transition-all"
-              >
-                Refund Policy
-              </Link>
+            <div className="space-y-3 text-sm sm:text-base text-slate-600 dark:text-slate-400">
+              <p>
+                Formal documentation for our Privacy Policy, Terms of Service, and Refund Policy is available upon request.
+              </p>
+              <p>
+                To request any policy document, please contact our support team directly at{" "}
+                <a
+                  href="mailto:admin@thegpedge.com.au?subject=Policy%20Documentation%20Request"
+                  className="text-teal-600 dark:text-teal-400 font-semibold underline underline-offset-2 hover:text-teal-700"
+                >
+                  admin@thegpedge.com.au
+                </a>.
+              </p>
             </div>
           </section>
 
@@ -382,6 +389,9 @@ export default function ContactClient() {
             <div className="text-sm sm:text-base space-y-1">
               <p className="font-bold text-slate-900 dark:text-slate-100">
                 The GP Edge Pty Ltd
+              </p>
+              <p className="text-slate-600 dark:text-slate-400 font-medium">
+                ABN: 66701866757
               </p>
             </div>
           </section>
@@ -422,13 +432,13 @@ export default function ContactClient() {
         </main>
 
         {/* Bottom Back Link */}
-        <div className="w-full flex justify-end mt-8">
+        <div className="w-full max-w-4xl mx-auto flex justify-end mt-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-300 transition-colors group"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-full border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-200 hover:translate-x-0.5"
           >
-            Back to Home
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            <span>Back to Home</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </div>
